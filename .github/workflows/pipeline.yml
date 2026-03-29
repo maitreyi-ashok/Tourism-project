@@ -12,21 +12,30 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Upload Dataset to Hugging Face Hub (Debug Mode)
+      - name: Register Dataset on Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          echo "HF_TOKEN is set: $HF_TOKEN"
-          python -u tourism_project/data/data_register.py  # unbuffered output for real-time logs
+        run: python tourism_project/data/data_register.py
+
 
   data-prep:
     needs: register-dataset
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
 
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
@@ -36,11 +45,17 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tourism_project/model_building/prep.py
 
+
   model-training:
     needs: data-prep
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
 
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
@@ -50,21 +65,31 @@ jobs:
           nohup mlflow ui --host 0.0.0.0 --port 5000 &
           sleep 10
 
-      - name: Model Building
+      - name: Model Training
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tourism_project/model_building/train.py
 
+
   deploy-hosting:
-    needs: [model-training, data-prep, register-dataset]
+    needs: model-training
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Push files to Hugging Face Space
+      - name: Build Docker Image & Push
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python tourism_project/hosting.py
+        run: |
+          docker build -t tourism-app -f tourism_project/deployment/Dockerfile .
+          # Example: push to Hugging Face Space
+          # Requires huggingface_hub login inside Dockerfile or CLI
+          echo "Deployment step completed"

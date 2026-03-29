@@ -1,10 +1,12 @@
 name: Tourism Project Pipeline
 
+# Trigger workflow on pushes to main
 on:
   push:
     branches:
       - main
 
+# Set Node.js 24 for deprecated actions
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -14,7 +16,7 @@ jobs:
   register-dataset:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -33,7 +35,7 @@ jobs:
     needs: register-dataset
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -52,7 +54,7 @@ jobs:
     needs: data-prep
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -76,7 +78,7 @@ jobs:
     needs: [register-dataset, data-prep, model-training]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4

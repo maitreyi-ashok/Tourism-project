@@ -1,6 +1,5 @@
 name: Tourism Project Pipeline
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches:
@@ -11,52 +10,53 @@ jobs:
   register-dataset:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: "3.12"
 
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Register Dataset on Hugging Face
+      - name: Register Dataset
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tourism_project/data/data_register.py
-
 
   data-prep:
     needs: register-dataset
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: "3.12"
 
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Run Data Preparation
+      - name: Prepare Data
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tourism_project/model_building/prep.py
-
 
   model-training:
     needs: data-prep
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: "3.12"
 
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
@@ -66,31 +66,27 @@ jobs:
           nohup mlflow ui --host 0.0.0.0 --port 5000 &
           sleep 10
 
-      - name: Model Training
+      - name: Train Model
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python tourism_project/model_building/train.py
 
-
   deploy-hosting:
-    needs: model-training
+    needs: [model-training, data-prep, register-dataset]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: "3.12"
 
       - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Build Docker Image & Push
+      - name: Deploy to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          docker build -t tourism-app -f tourism_project/deployment/Dockerfile .
-          # Example: push to Hugging Face Space
-          # Requires huggingface_hub login inside Dockerfile or CLI
-          echo "Deployment step completed"
+        run: python tourism_project/deployment/hosting.py

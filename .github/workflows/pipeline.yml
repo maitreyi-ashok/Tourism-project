@@ -1,94 +1,91 @@
 name: Tourism Project Pipeline
 
-# Trigger workflow on pushes to main
 on:
   push:
     branches:
       - main
 
-# Set Node.js 24 for deprecated actions
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Ensures Node.js 24 for deprecated actions
 
 jobs:
 
   register-dataset:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3  
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: 3.12
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Upload Dataset to Hugging Face
-        run: python tourism_project/data/data_register.py
+      - name: Upload Dataset to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/data/data_register.py
 
   data-prep:
     needs: register-dataset
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: 3.12
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
       - name: Run Data Preparation
-        run: python tourism_project/model_building/prep.py
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/model_building/prep.py
 
   model-training:
     needs: data-prep
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: 3.12
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Start MLflow server
+      - name: Start MLflow Server
         run: |
           nohup mlflow ui --host 0.0.0.0 --port 5000 &
           sleep 10
 
-      - name: Train Model
-        run: python tourism_project/model_building/train.py
+      - name: Model Building
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/model_building/train.py
 
   deploy-hosting:
-    needs: [register-dataset, data-prep, model-training]
+    needs: [model-training, data-prep, register-dataset]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: 3.12
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: pip install -r tourism_project/requirements.txt
 
-      - name: Deploy to Hugging Face Spaces
-        run: python tourism_project/hosting.py
+      - name: Push files to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/hosting.py
